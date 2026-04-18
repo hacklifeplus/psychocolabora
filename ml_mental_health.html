@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ML · Salud Mental en IT</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-light: #818cf8;
+    --secondary: #0ea5e9;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --dark: #1e1b4b;
+    --surface: #f8fafc;
+    --card-bg: #ffffff;
+  }
+  body { background: var(--surface); font-family: 'Segoe UI', system-ui, sans-serif; color: #1e293b; }
+  .hero {
+    background: linear-gradient(135deg, var(--dark) 0%, #312e81 50%, #1e3a5f 100%);
+    color: white; padding: 60px 0 40px; text-align: center;
+  }
+  .hero h1 { font-size: 2.8rem; font-weight: 800; letter-spacing: -1px; }
+  .hero p { font-size: 1.15rem; opacity: .85; max-width: 600px; margin: 0 auto; }
+  .badge-hero { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); padding: 6px 16px; border-radius: 20px; font-size: .85rem; display: inline-block; margin: 4px; }
+
+  .phase-nav { background: white; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; z-index: 100; }
+  .phase-nav .nav-link { color: #64748b; font-weight: 600; padding: 14px 18px; border-radius: 0; border-bottom: 3px solid transparent; transition: all .2s; font-size: .9rem; }
+  .phase-nav .nav-link:hover { color: var(--primary); }
+  .phase-nav .nav-link.active { color: var(--primary); border-bottom-color: var(--primary); background: none; }
+  .phase-nav .nav-link .badge { font-size: .7rem; }
+
+  section { padding: 60px 0; }
+  section:nth-child(even) { background: white; }
+
+  .phase-title { font-size: 2rem; font-weight: 800; color: var(--dark); margin-bottom: 8px; }
+  .phase-title span { color: var(--primary); }
+  .phase-subtitle { color: #64748b; font-size: 1.05rem; margin-bottom: 32px; }
+
+  .stat-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+    color: white; border-radius: 16px; padding: 28px; text-align: center;
+    box-shadow: 0 10px 30px rgba(79,70,229,.3);
+  }
+  .stat-card .value { font-size: 2.5rem; font-weight: 800; }
+  .stat-card .label { opacity: .85; font-size: .9rem; margin-top: 4px; }
+  .stat-card.green { background: linear-gradient(135deg, #059669 0%, #10b981 100%); box-shadow: 0 10px 30px rgba(16,185,129,.3); }
+  .stat-card.blue { background: linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%); box-shadow: 0 10px 30px rgba(14,165,233,.3); }
+  .stat-card.orange { background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%); box-shadow: 0 10px 30px rgba(245,158,11,.3); }
+
+  .info-card {
+    background: white; border-radius: 16px; padding: 24px; border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06); height: 100%;
+  }
+  .info-card h5 { color: var(--primary); font-weight: 700; margin-bottom: 12px; }
+
+  .feature-pill {
+    display: inline-block; background: linear-gradient(135deg, #ede9fe, #dbeafe);
+    color: var(--dark); border-radius: 20px; padding: 6px 14px; margin: 4px;
+    font-size: .85rem; font-weight: 600; border: 1px solid #c4b5fd;
+  }
+
+  .model-card {
+    background: white; border-radius: 16px; border: 1px solid #e2e8f0;
+    padding: 20px; margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05); transition: transform .2s, box-shadow .2s;
+  }
+  .model-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+  .model-card .model-name { font-weight: 700; color: var(--dark); font-size: 1.05rem; }
+  .metric-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: .8rem; font-weight: 600; margin: 2px; }
+  .metric-acc { background: #dbeafe; color: #1d4ed8; }
+  .metric-f1 { background: #dcfce7; color: #15803d; }
+  .metric-rec { background: #fef9c3; color: #854d0e; }
+  .metric-auc { background: #fce7f3; color: #9d174d; }
+
+  .progress-bar-custom { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+
+  /* Predictor */
+  .predictor-section { background: linear-gradient(135deg, #f0f4ff 0%, #e8f4f8 100%); }
+  .predictor-card {
+    background: white; border-radius: 24px; padding: 40px;
+    box-shadow: 0 20px 60px rgba(79,70,229,.15); border: 1px solid #e0e7ff;
+  }
+  .form-label { font-weight: 600; color: #374151; font-size: .9rem; }
+  .form-select, .form-control {
+    border: 2px solid #e2e8f0; border-radius: 10px; padding: 10px 14px;
+    font-size: .95rem; transition: border-color .2s;
+  }
+  .form-select:focus, .form-control:focus {
+    border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+  }
+  .btn-predict {
+    background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+    color: white; border: none; border-radius: 12px; padding: 14px 40px;
+    font-size: 1.05rem; font-weight: 700; width: 100%;
+    box-shadow: 0 8px 24px rgba(79,70,229,.35); transition: all .2s;
+    cursor: pointer;
+  }
+  .btn-predict:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(79,70,229,.45); }
+
+  .result-box {
+    border-radius: 16px; padding: 28px; text-align: center; margin-top: 24px;
+    display: none; animation: fadeIn .5s ease;
+  }
+  .result-yes { background: linear-gradient(135deg, #fef2f2, #fce7f3); border: 2px solid #fca5a5; }
+  .result-no { background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 2px solid #86efac; }
+  .result-label { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+  .result-yes .result-label { color: #dc2626; }
+  .result-no .result-label { color: #16a34a; }
+  .result-prob { font-size: 1.1rem; color: #64748b; }
+  .model-selector { margin-bottom: 20px; }
+
+  .cm-table td, .cm-table th { text-align: center; padding: 10px 20px; font-weight: 600; }
+  .cm-tp { background: #dcfce7; color: #15803d; }
+  .cm-tn { background: #dbeafe; color: #1e40af; }
+  .cm-fp { background: #fef9c3; color: #854d0e; }
+  .cm-fn { background: #fee2e2; color: #b91c1c; }
+
+  @keyframes fadeIn { from { opacity:0; transform: translateY(10px) } to { opacity:1; transform: translateY(0) } }
+
+  .step-badge {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), #7c3aed);
+    color: white; font-weight: 700; font-size: .9rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-right: 10px; flex-shrink: 0;
+  }
+  .step-item { display: flex; align-items: flex-start; margin-bottom: 16px; }
+  .step-item p { margin: 0; }
+
+  .diff-good { color: #16a34a; font-weight: 700; }
+  .diff-ok { color: #d97706; font-weight: 700; }
+  .diff-bad { color: #dc2626; font-weight: 700; }
+
+  footer { background: var(--dark); color: rgba(255,255,255,.7); text-align: center; padding: 24px; font-size: .85rem; }
+  .chart-container { position: relative; height: 300px; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="container">
+    <div class="mb-3">
+      <span class="badge-hero"><i class="fas fa-brain me-1"></i> Salud Mental</span>
+      <span class="badge-hero"><i class="fas fa-laptop-code me-1"></i> Sector IT</span>
+      <span class="badge-hero"><i class="fas fa-robot me-1"></i> Machine Learning</span>
+    </div>
+    <h1>Predicción de Tratamiento de Salud Mental en IT</h1>
+    <p class="mt-3">Análisis completo con 7 modelos de clasificación sobre 1246 registros de la encuesta OSMI</p>
+    <div class="mt-4">
+      <span class="badge bg-success fs-6 me-2">Mejor modelo: Random Forest (77.54%)</span>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="phase-nav">
+  <div class="container">
+    <ul class="nav" id="phaseNav">
+      <li class="nav-item"><a class="nav-link active" href="#phase1"><span class="badge bg-primary me-1">1</span>Dataset</a></li>
+      <li class="nav-item"><a class="nav-link" href="#phase2"><span class="badge bg-primary me-1">2</span>EDA</a></li>
+      <li class="nav-item"><a class="nav-link" href="#phase3"><span class="badge bg-primary me-1">3</span>Preprocesamiento</a></li>
+      <li class="nav-item"><a class="nav-link" href="#phase4"><span class="badge bg-primary me-1">4</span>Features</a></li>
+      <li class="nav-item"><a class="nav-link" href="#phase5"><span class="badge bg-primary me-1">5</span>Modelos</a></li>
+      <li class="nav-item"><a class="nav-link" href="#phase6"><span class="badge bg-primary me-1">6</span>Evaluación</a></li>
+      <li class="nav-item"><a class="nav-link" href="#phase7"><span class="badge bg-warning text-dark me-1">7</span>Predictor</a></li>
+    </ul>
+  </div>
+</div>
+
+<!-- PHASE 1: DATASET -->
+<section id="phase1">
+  <div class="container">
+    <p class="phase-subtitle">FASE 1</p>
+    <h2 class="phase-title">Descripción del <span>Dataset</span></h2>
+    <p class="phase-subtitle">Encuesta OSMI 2014 · Mental Health in Tech Survey — datos reales del sector tecnológico</p>
+
+    <div class="row g-4 mb-5">
+      <div class="col-md-3"><div class="stat-card"><div class="value">1246</div><div class="label">Registros totales</div></div></div>
+      <div class="col-md-3"><div class="stat-card green"><div class="value">23</div><div class="label">Variables originales</div></div></div>
+      <div class="col-md-3"><div class="stat-card blue"><div class="value">8</div><div class="label">Features seleccionadas</div></div></div>
+      <div class="col-md-3"><div class="stat-card orange"><div class="value">7</div><div class="label">Modelos entrenados</div></div></div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="info-card">
+          <h5><i class="fas fa-info-circle me-2"></i>Sobre el dataset</h5>
+          <p>La encuesta OSMI (Open Sourcing Mental Illness) recopila datos sobre percepciones, actitudes y experiencias de profesionales del sector tecnológico respecto a la salud mental en el trabajo.</p>
+          <ul class="mt-3">
+            <li><strong>Variable objetivo:</strong> <code>treatment</code> — ¿Ha buscado tratamiento de salud mental?</li>
+            <li><strong>Tipo de problema:</strong> Clasificación binaria (Sí / No)</li>
+            <li><strong>Balance de clases:</strong> Dataset balanceado</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="info-card">
+          <h5><i class="fas fa-chart-pie me-2"></i>Distribución de la variable objetivo</h5>
+          <div class="chart-container" style="height:220px;">
+            <canvas id="targetChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 2: EDA -->
+<section id="phase2">
+  <div class="container">
+    <p class="phase-subtitle">FASE 2</p>
+    <h2 class="phase-title">Análisis <span>Exploratorio</span></h2>
+    <p class="phase-subtitle">Comprensión de la distribución de variables y relaciones con el objetivo</p>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="info-card">
+          <h5><i class="fas fa-chart-bar me-2"></i>Distribución de las 8 variables clave</h5>
+          <canvas id="featuresChart" style="max-height:320px;"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="info-card">
+          <h5><i class="fas fa-list me-2"></i>Variables del dataset</h5>
+          <p class="text-muted small">Las variables seleccionadas para el modelo final:</p>
+          <span class="feature-pill"><i class="fas fa-tag me-1"></i>family_history</span><span class="feature-pill"><i class="fas fa-tag me-1"></i>care_options</span><span class="feature-pill"><i class="fas fa-tag me-1"></i>benefits</span><span class="feature-pill"><i class="fas fa-tag me-1"></i>anonymity</span><span class="feature-pill"><i class="fas fa-tag me-1"></i>obs_consequence</span><span class="feature-pill"><i class="fas fa-tag me-1"></i>work_interfere</span><span class="feature-pill"><i class="fas fa-tag me-1"></i>leave</span><span class="feature-pill"><i class="fas fa-tag me-1"></i>Gender</span>
+          <hr>
+          <p class="text-muted small mt-3">Variables descartadas en preprocesamiento:</p>
+          <span class="feature-pill" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;">Timestamp</span>
+          <span class="feature-pill" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;">Country</span>
+          <span class="feature-pill" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;">state</span>
+          <span class="feature-pill" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;">comments</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 3: PREPROCESSING -->
+<section id="phase3">
+  <div class="container">
+    <p class="phase-subtitle">FASE 3</p>
+    <h2 class="phase-title"><span>Preprocesamiento</span> de Datos</h2>
+    <p class="phase-subtitle">Limpieza, codificación y división del dataset</p>
+
+    <div class="row g-4 mb-4">
+      <div class="col-md-4">
+        <div class="info-card">
+          <h5><i class="fas fa-broom me-2"></i>Limpieza</h5>
+          <div class="step-item"><div class="step-badge">1</div><p>Eliminación de columnas irrelevantes: <code>Timestamp</code>, <code>Country</code>, <code>state</code>, <code>comments</code></p></div>
+          <div class="step-item"><div class="step-badge">2</div><p>Normalización del campo <code>Gender</code> (muchas variantes → Male / Female / Other)</p></div>
+          <div class="step-item"><div class="step-badge">3</div><p>Filtrado de edades válidas (18–65 años)</p></div>
+          <div class="step-item"><div class="step-badge">4</div><p>Eliminación de registros duplicados</p></div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="info-card">
+          <h5><i class="fas fa-code me-2"></i>Label Encoding</h5>
+          <p class="text-muted small">Codificación alfabética de variables categóricas con <code>sklearn.LabelEncoder</code>:</p>
+          <div id="encodingTable"></div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="info-card">
+          <h5><i class="fas fa-cut me-2"></i>División del Dataset</h5>
+          <div class="text-center my-3">
+            <div style="height:20px;border-radius:10px;overflow:hidden;display:flex;margin-bottom:16px;">
+              <div style="width:70%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-size:.75rem;font-weight:700;">TRAIN 70%</div>
+              <div style="width:15%;background:#0ea5e9;display:flex;align-items:center;justify-content:center;color:white;font-size:.75rem;font-weight:700;">VAL</div>
+              <div style="width:15%;background:#10b981;display:flex;align-items:center;justify-content:center;color:white;font-size:.75rem;font-weight:700;">TEST</div>
+            </div>
+          </div>
+          <ul>
+            <li><strong>Entrenamiento:</strong> 872 registros (70%)</li>
+            <li><strong>Validación:</strong> 187 registros (15%)</li>
+            <li><strong>Test:</strong> 187 registros (15%)</li>
+          </ul>
+          <p class="text-muted small mt-2"><code>random_state=42</code> para reproducibilidad</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 4: FEATURE SELECTION -->
+<section id="phase4">
+  <div class="container">
+    <p class="phase-subtitle">FASE 4</p>
+    <h2 class="phase-title">Selección de <span>Features</span></h2>
+    <p class="phase-subtitle">Métodos de selección de variables más predictivas</p>
+
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="info-card">
+          <h5><i class="fas fa-chart-bar me-2"></i>Importancia de Features (ExtraTreesClassifier)</h5>
+          <canvas id="importanceChart" style="max-height:280px;"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="info-card">
+          <h5><i class="fas fa-microscope me-2"></i>Métodos de selección usados</h5>
+          <div class="step-item"><div class="step-badge">1</div><p><strong>ExtraTreesClassifier:</strong> Importancia basada en impureza de Gini en árboles extremadamente aleatorizados</p></div>
+          <div class="step-item"><div class="step-badge">2</div><p><strong>ANOVA F-test:</strong> Relación lineal entre cada feature y el target mediante test F</p></div>
+          <div class="step-item"><div class="step-badge">3</div><p><strong>Chi-square test:</strong> Dependencia estadística para variables categóricas</p></div>
+          <div class="step-item"><div class="step-badge">4</div><p><strong>Mutual Information:</strong> Información mutua entre cada feature y el target (sin asumir linealidad)</p></div>
+          <hr>
+          <p class="text-muted small"><strong>Resultado:</strong> Las 8 features con mayor consenso entre métodos fueron seleccionadas para el modelo final.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 5: MODELS -->
+<section id="phase5">
+  <div class="container">
+    <p class="phase-subtitle">FASE 5</p>
+    <h2 class="phase-title">Entrenamiento de <span>Modelos</span></h2>
+    <p class="phase-subtitle">7 algoritmos de clasificación entrenados y comparados</p>
+
+    <div class="row g-3" id="modelsGrid">
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 6: EVALUATION -->
+<section id="phase6">
+  <div class="container">
+    <p class="phase-subtitle">FASE 6</p>
+    <h2 class="phase-title">Evaluación y <span>Comparación</span></h2>
+    <p class="phase-subtitle">Métricas de rendimiento y análisis de sobreajuste (Train vs Test)</p>
+
+    <div class="row g-4 mb-4">
+      <div class="col-12">
+        <div class="info-card">
+          <h5><i class="fas fa-chart-bar me-2"></i>Accuracy: Entrenamiento vs Test</h5>
+          <div class="chart-container">
+            <canvas id="comparisonChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-12">
+        <div class="info-card">
+          <h5><i class="fas fa-table me-2"></i>Tabla de Métricas Completa</h5>
+          <div class="table-responsive">
+            <table class="table table-hover" id="metricsTable">
+              <thead class="table-dark">
+                <tr>
+                  <th>Modelo</th>
+                  <th>Acc Train</th><th>Acc Test</th><th>Δ Acc</th>
+                  <th>F1 Test</th><th>Recall Test</th><th>AUC Test</th>
+                </tr>
+              </thead>
+              <tbody id="metricsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12">
+        <div class="info-card">
+          <h5><i class="fas fa-th me-2"></i>Matrices de Confusión</h5>
+          <div class="row g-3" id="confusionMatrices"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 7: PREDICTOR -->
+<section id="phase7" class="predictor-section">
+  <div class="container">
+    <p class="phase-subtitle">FASE 7</p>
+    <h2 class="phase-title">Predictor <span>Interactivo</span></h2>
+    <p class="phase-subtitle">Introduce los datos del empleado y obtén la predicción de los modelos entrenados</p>
+
+    <div class="predictor-card">
+      <div class="row g-4 mb-4">
+        <div class="col-12">
+          <label class="form-label"><i class="fas fa-robot me-2"></i>Seleccionar modelo</label>
+          <select class="form-select model-selector" id="modelSelector">
+            <option value="lr">Logistic Regression</option>
+            <option value="dt" selected>Decision Tree (max_depth=3)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row g-4" id="predictorForm">
+      </div>
+
+      <div class="mt-4">
+        <button class="btn-predict" onclick="predict()">
+          <i class="fas fa-brain me-2"></i>Realizar Predicción
+        </button>
+      </div>
+
+      <div class="result-box result-yes" id="resultYes">
+        <div class="result-label"><i class="fas fa-exclamation-triangle me-2"></i>Buscaría Tratamiento</div>
+        <div class="result-prob" id="resultProbYes"></div>
+        <div class="mt-3 text-muted small">El modelo predice que esta persona probablemente buscaría tratamiento de salud mental.</div>
+      </div>
+      <div class="result-box result-no" id="resultNo">
+        <div class="result-label"><i class="fas fa-check-circle me-2"></i>No Buscaría Tratamiento</div>
+        <div class="result-prob" id="resultProbNo"></div>
+        <div class="mt-3 text-muted small">El modelo predice que esta persona probablemente no buscaría tratamiento de salud mental.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Basado en el notebook <strong>ml-mental-health.dataset-a.work.V23</strong> · Dataset OSMI Mental Health in Tech Survey 2014</p>
+  <p class="mt-1 opacity-50">Generado con Python + scikit-learn · Solo con fines educativos</p>
+</footer>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const labelDict = {"Gender": ["Female", "Male", "Other"], "self_employed": ["No", "Yes"], "family_history": ["No", "Yes"], "treatment": ["No", "Yes"], "work_interfere": ["Never", "Often", "Rarely", "Sometimes"], "no_employees": ["1-5", "100-500", "26-100", "500-1000", "6-25", "More than 1000"], "remote_work": ["No", "Yes"], "tech_company": ["No", "Yes"], "benefits": ["Don't know", "No", "Yes"], "care_options": ["No", "Not sure", "Yes"], "wellness_program": ["Don't know", "No", "Yes"], "seek_help": ["Don't know", "No", "Yes"], "anonymity": ["Don't know", "No", "Yes"], "leave": ["Don't know", "Somewhat difficult", "Somewhat easy", "Very difficult", "Very easy"], "mental_health_consequence": ["Maybe", "No", "Yes"], "phys_health_consequence": ["Maybe", "No", "Yes"], "coworkers": ["No", "Some of them", "Yes"], "supervisor": ["No", "Some of them", "Yes"], "mental_health_interview": ["Maybe", "No", "Yes"], "phys_health_interview": ["Maybe", "No", "Yes"], "mental_vs_physical": ["Don't know", "No", "Yes"], "obs_consequence": ["No", "Yes"]};
+const featureCols = ["family_history", "care_options", "benefits", "anonymity", "obs_consequence", "work_interfere", "leave", "Gender"];
+const results = {"Logistic Regression": {"train": {"accuracy": 72.13, "precision": 73.16, "recall": 70.32, "f1": 71.71, "auc": 72.14}, "test": {"accuracy": 72.73, "precision": 75.95, "recall": 65.22, "f1": 70.18, "auc": 72.61}, "diff": {"accuracy": -0.6, "precision": -2.79, "recall": 5.1, "f1": 1.53, "auc": -0.47}, "cm": [[76, 19], [32, 60]]}, "Decision Tree": {"train": {"accuracy": 73.85, "precision": 72.83, "recall": 76.48, "f1": 74.61, "auc": 73.84}, "test": {"accuracy": 74.87, "precision": 75.28, "recall": 72.83, "f1": 74.03, "auc": 74.83}, "diff": {"accuracy": -1.02, "precision": -2.45, "recall": 3.65, "f1": 0.58, "auc": -0.99}, "cm": [[73, 22], [25, 67]]}, "Random Forest": {"train": {"accuracy": 76.38, "precision": 76.98, "recall": 75.57, "f1": 76.27, "auc": 76.38}, "test": {"accuracy": 77.54, "precision": 79.07, "recall": 73.91, "f1": 76.4, "auc": 77.48}, "diff": {"accuracy": -1.16, "precision": -2.09, "recall": 1.66, "f1": -0.13, "auc": -1.1}, "cm": [[77, 18], [24, 68]]}, "KNN": {"train": {"accuracy": 76.38, "precision": 77.1, "recall": 75.34, "f1": 76.21, "auc": 76.38}, "test": {"accuracy": 63.1, "precision": 64.94, "recall": 54.35, "f1": 59.17, "auc": 62.96}, "diff": {"accuracy": 13.28, "precision": 12.16, "recall": 20.99, "f1": 17.04, "auc": 13.42}, "cm": [[68, 27], [42, 50]]}, "Naive Bayes": {"train": {"accuracy": 70.87, "precision": 72.55, "recall": 67.58, "f1": 69.98, "auc": 70.89}, "test": {"accuracy": 73.26, "precision": 79.17, "recall": 61.96, "f1": 69.51, "auc": 73.08}, "diff": {"accuracy": -2.39, "precision": -6.62, "recall": 5.62, "f1": 0.47, "auc": -2.19}, "cm": [[80, 15], [35, 57]]}, "SVC": {"train": {"accuracy": 75.46, "precision": 76.17, "recall": 74.43, "f1": 75.29, "auc": 75.46}, "test": {"accuracy": 76.47, "precision": 77.91, "recall": 72.83, "f1": 75.28, "auc": 76.41}, "diff": {"accuracy": -1.01, "precision": -1.74, "recall": 1.6, "f1": 0.01, "auc": -0.95}, "cm": [[76, 19], [25, 67]]}, "XGBoost": {"train": {"accuracy": 87.27, "precision": 87.41, "recall": 87.21, "f1": 87.31, "auc": 87.27}, "test": {"accuracy": 70.05, "precision": 68.75, "recall": 71.74, "f1": 70.21, "auc": 70.08}, "diff": {"accuracy": 17.22, "precision": 18.66, "recall": 15.47, "f1": 17.1, "auc": 17.19}, "cm": [[65, 30], [26, 66]]}};
+const featureImportances = {"work_interfere": 24.69, "family_history": 18.66, "leave": 17.21, "care_options": 11.9, "benefits": 8.96, "Gender": 7.67, "anonymity": 6.23, "obs_consequence": 4.68};
+const treatmentYesIdx = 1;
+const treatmentLabels = ["No", "Yes"];
+
+// LR weights
+const lrCoef = {"family_history": 1.4044330218850483, "care_options": 0.35560970099918837, "benefits": 0.3891801916494651, "anonymity": 0.019496367212686883, "obs_consequence": 0.723885452511127, "work_interfere": 0.17868446027474214, "leave": 0.011860110986700284, "Gender": -0.5377012993232774};
+const lrIntercept = -1.368504852783036;
+
+// ─── DECISION TREE (exported from sklearn) ──────────────────────────────────
+function decisionTreePredict(f) {
+  if (f['family_history'] <= 0.5000) {
+    if (f['care_options'] <= 1.5000) {
+      if (f['work_interfere'] <= 0.5000) {
+        return {pred: 0, label: 'No', prob: 0.888};
+      } else {
+        return {pred: 0, label: 'No', prob: 0.694};
+      }
+    } else {
+      if (f['work_interfere'] <= 0.5000) {
+        return {pred: 0, label: 'No', prob: 0.844};
+      } else {
+        return {pred: 1, label: 'Yes', prob: 0.638};
+      }
+    }
+  } else {
+    if (f['care_options'] <= 1.5000) {
+      if (f['work_interfere'] <= 0.5000) {
+        return {pred: 0, label: 'No', prob: 0.684};
+      } else {
+        return {pred: 1, label: 'Yes', prob: 0.690};
+      }
+    } else {
+      if (f['work_interfere'] <= 0.5000) {
+        return {pred: 0, label: 'No', prob: 0.857};
+      } else {
+        return {pred: 1, label: 'Yes', prob: 0.854};
+      }
+    }
+  }
+}
+
+// ─── LR PREDICT ─────────────────────────────────────────────────────────────
+function lrPredict(f) {
+  let logit = lrIntercept;
+  for (const k of featureCols) {
+    logit += (lrCoef[k] || 0) * f[k];
+  }
+  const prob = 1 / (1 + Math.exp(-logit));
+  const pred = prob >= 0.5 ? treatmentYesIdx : (1 - treatmentYesIdx);
+  return {
+    pred: pred,
+    label: treatmentLabels[pred],
+    prob: pred === treatmentYesIdx ? prob : 1 - prob
+  };
+}
+
+// ─── INIT PAGE ───────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildEncodingTable();
+  buildPredictorForm();
+  buildModelsGrid();
+  buildMetricsTable();
+  buildConfusionMatrices();
+  initCharts();
+  initNav();
+});
+
+function initNav() {
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.phase-nav .nav-link');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 100) current = s.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.remove('active');
+      if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+    });
+  });
+  navLinks.forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({behavior: 'smooth'});
+    });
+  });
+}
+
+function buildEncodingTable() {
+  const el = document.getElementById('encodingTable');
+  let html = '<div style="max-height:280px;overflow-y:auto;">';
+  for (const [feat, vals] of Object.entries(labelDict)) {
+    if (featureCols.includes(feat) || feat === 'treatment') {
+      html += `<div class="mb-2"><strong style="font-size:.85rem;">${feat}</strong><br>`;
+      vals.forEach((v, i) => {
+        html += `<span class="badge bg-light text-dark border me-1" style="font-size:.75rem;">${i}=${v}</span>`;
+      });
+      html += '</div>';
+    }
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function buildPredictorForm() {
+  const el = document.getElementById('predictorForm');
+  const icons = {
+    'family_history': 'fa-users', 'care_options': 'fa-hospital',
+    'benefits': 'fa-hand-holding-medical', 'anonymity': 'fa-user-secret',
+    'obs_consequence': 'fa-eye', 'work_interfere': 'fa-briefcase',
+    'leave': 'fa-calendar-minus', 'Gender': 'fa-venus-mars'
+  };
+  const descriptions = {
+    'family_history': '¿Tiene historial familiar de enfermedades mentales?',
+    'care_options': '¿Conoce las opciones de atención de salud mental de su empleador?',
+    'benefits': '¿Su empleador ofrece beneficios de salud mental?',
+    'anonymity': '¿Está protegido el anonimato al buscar tratamiento?',
+    'obs_consequence': '¿Ha observado consecuencias negativas para colegas con problemas de SM?',
+    'work_interfere': '¿Con qué frecuencia la SM interfiere en su trabajo?',
+    'leave': '¿Qué tan fácil es tomar licencia por problemas de salud mental?',
+    'Gender': 'Género del empleado'
+  };
+
+  let html = '';
+  featureCols.forEach(feat => {
+    const vals = labelDict[feat] || [];
+    const icon = icons[feat] || 'fa-question';
+    html += `<div class="col-md-6">
+      <label class="form-label"><i class="fas ${icon} me-1 text-primary"></i>${feat}</label>
+      <div class="text-muted small mb-1">${descriptions[feat] || ''}</div>
+      <select class="form-select" id="pred_${feat}">
+        ${vals.map((v, i) => `<option value="${i}">${v}</option>`).join('')}
+      </select>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function buildModelsGrid() {
+  const el = document.getElementById('modelsGrid');
+  const modelIcons = {
+    'Logistic Regression': 'fa-chart-line',
+    'Decision Tree': 'fa-sitemap',
+    'Random Forest': 'fa-tree',
+    'KNN': 'fa-project-diagram',
+    'Naive Bayes': 'fa-calculator',
+    'SVC': 'fa-vector-square',
+    'XGBoost': 'fa-bolt',
+  };
+  const modelColors = {
+    'Logistic Regression': '#4f46e5',
+    'Decision Tree': '#0ea5e9',
+    'Random Forest': '#10b981',
+    'KNN': '#f59e0b',
+    'Naive Bayes': '#8b5cf6',
+    'SVC': '#ef4444',
+    'XGBoost': '#f97316',
+  };
+  const modelDesc = {
+    'Logistic Regression': 'Modelo lineal. Estima la probabilidad de la clase positiva usando función logística. Rápido e interpretable.',
+    'Decision Tree': 'Árbol de decisión con max_depth=3. Divide el espacio de features en regiones rectangulares.',
+    'Random Forest': 'Ensemble de 20 árboles de decisión. Promedía predicciones para mayor robustez.',
+    'KNN': 'Clasifica basándose en los 5 vecinos más cercanos en el espacio de features.',
+    'Naive Bayes': 'Modelo probabilístico que asume independencia entre features (Gaussiano).',
+    'SVC': 'Máquina de Vectores de Soporte con kernel RBF. Encuentra el hiperplano óptimo.',
+    'XGBoost': 'Gradient Boosting extremo. Ensemble secuencial de árboles débiles con regularización.',
+  };
+
+  let html = '';
+  for (const [name, r] of Object.entries(results)) {
+    const color = modelColors[name] || '#64748b';
+    const icon = modelIcons[name] || 'fa-robot';
+    const acc = r.test.accuracy;
+    const diff = r.diff.accuracy;
+    const diffClass = Math.abs(diff) < 3 ? 'diff-good' : Math.abs(diff) < 8 ? 'diff-ok' : 'diff-bad';
+    html += `<div class="col-md-6 col-lg-4">
+      <div class="model-card">
+        <div class="d-flex align-items-center mb-2">
+          <div style="width:42px;height:42px;border-radius:10px;background:${color}20;display:flex;align-items:center;justify-content:center;margin-right:12px;">
+            <i class="fas ${icon}" style="color:${color};font-size:1.1rem;"></i>
+          </div>
+          <div class="model-name">${name}</div>
+        </div>
+        <p class="text-muted small mb-3">${modelDesc[name] || ''}</p>
+        <div class="mb-2">
+          <span class="metric-badge metric-acc">Acc: ${acc}%</span>
+          <span class="metric-badge metric-f1">F1: ${r.test.f1}%</span>
+          <span class="metric-badge metric-rec">Recall: ${r.test.recall}%</span>
+          <span class="metric-badge metric-auc">AUC: ${r.test.auc}%</span>
+        </div>
+        <div class="text-muted small">
+          Overfitting (ΔAcc): <span class="${diffClass}">${diff > 0 ? '+' : ''}${diff}%</span>
+        </div>
+        <div class="mt-2" style="background:#f1f5f9;border-radius:6px;overflow:hidden;height:6px;">
+          <div style="width:${acc}%;height:100%;background:${color};border-radius:6px;"></div>
+        </div>
+      </div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function buildMetricsTable() {
+  const body = document.getElementById('metricsBody');
+  let html = '';
+  for (const [name, r] of Object.entries(results)) {
+    const diff = r.diff.accuracy;
+    const diffClass = Math.abs(diff) < 3 ? 'text-success fw-bold' : Math.abs(diff) < 8 ? 'text-warning fw-bold' : 'text-danger fw-bold';
+    html += `<tr>
+      <td><strong>${name}</strong></td>
+      <td>${r.train.accuracy}%</td>
+      <td>${r.test.accuracy}%</td>
+      <td class="${diffClass}">${diff > 0 ? '+' : ''}${diff}%</td>
+      <td>${r.test.f1}%</td>
+      <td>${r.test.recall}%</td>
+      <td>${r.test.auc}%</td>
+    </tr>`;
+  }
+  body.innerHTML = html;
+}
+
+function buildConfusionMatrices() {
+  const el = document.getElementById('confusionMatrices');
+  let html = '';
+  for (const [name, r] of Object.entries(results)) {
+    const cm = r.cm;
+    const tn = cm[0][0], fp = cm[0][1], fn = cm[1][0], tp = cm[1][1];
+    html += `<div class="col-md-6 col-lg-3">
+      <div style="text-align:center;margin-bottom:8px;font-weight:700;font-size:.85rem;">${name}</div>
+      <table class="table table-bordered cm-table w-auto mx-auto" style="font-size:.8rem;">
+        <thead><tr><th></th><th>Pred No</th><th>Pred Sí</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Real No</strong></td><td class="cm-tn">${tn}</td><td class="cm-fp">${fp}</td></tr>
+          <tr><td><strong>Real Sí</strong></td><td class="cm-fn">${fn}</td><td class="cm-tp">${tp}</td></tr>
+        </tbody>
+      </table>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function predict() {
+  const f = {};
+  featureCols.forEach(feat => {
+    f[feat] = parseInt(document.getElementById('pred_' + feat).value);
+  });
+
+  const model = document.getElementById('modelSelector').value;
+  let res;
+  if (model === 'dt') {
+    res = decisionTreePredict(f);
+  } else {
+    res = lrPredict(f);
+  }
+
+  const yesEl = document.getElementById('resultYes');
+  const noEl = document.getElementById('resultNo');
+  const isYes = (res.pred === treatmentYesIdx);
+
+  yesEl.style.display = 'none';
+  noEl.style.display = 'none';
+
+  if (isYes) {
+    document.getElementById('resultProbYes').textContent = `Probabilidad: ${(res.prob * 100).toFixed(1)}%`;
+    yesEl.style.display = 'block';
+  } else {
+    document.getElementById('resultProbNo').textContent = `Probabilidad: ${(res.prob * 100).toFixed(1)}%`;
+    noEl.style.display = 'block';
+  }
+}
+
+// ─── CHARTS ──────────────────────────────────────────────────────────────────
+function initCharts() {
+  // Target distribution
+  const targetDist = {"No": 617, "Yes": 629};
+  new Chart(document.getElementById('targetChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(targetDist),
+      datasets: [{ data: Object.values(targetDist), backgroundColor: ['#4f46e5','#10b981'], borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+  });
+
+  // Features importance
+  const fiLabels = ["work_interfere", "family_history", "leave", "care_options", "benefits", "Gender", "anonymity", "obs_consequence"];
+  const fiVals = [24.69, 18.66, 17.21, 11.9, 8.96, 7.67, 6.23, 4.68];
+  new Chart(document.getElementById('importanceChart'), {
+    type: 'bar',
+    data: {
+      labels: fiLabels,
+      datasets: [{ label: 'Importancia (%)', data: fiVals,
+        backgroundColor: fiLabels.map((_, i) => `hsl(${200 + i*20}, 70%, 55%)`), borderWidth: 0, borderRadius: 6 }]
+    },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  // Features distribution (count per category)
+  const featLabels = ["family_history", "care_options", "benefits", "anonymity", "obs_consequence", "work_interfere", "leave", "Gender"];
+  const featCounts = [2, 3, 3, 3, 2, 4, 5, 3];
+  new Chart(document.getElementById('featuresChart'), {
+    type: 'bar',
+    data: {
+      labels: featLabels,
+      datasets: [{
+        label: 'Número de categorías',
+        data: featCounts,
+        backgroundColor: 'rgba(79,70,229,0.7)', borderRadius: 8, borderWidth: 0
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+  });
+
+  // Comparison chart
+  const modelNames = ["Logistic Regression", "Decision Tree", "Random Forest", "KNN", "Naive Bayes", "SVC", "XGBoost"];
+  const trainAcc = [72.13, 73.85, 76.38, 76.38, 70.87, 75.46, 87.27];
+  const testAcc = [72.73, 74.87, 77.54, 63.1, 73.26, 76.47, 70.05];
+  new Chart(document.getElementById('comparisonChart'), {
+    type: 'bar',
+    data: {
+      labels: modelNames,
+      datasets: [
+        { label: 'Train Accuracy (%)', data: trainAcc, backgroundColor: 'rgba(79,70,229,0.8)', borderRadius: 6, borderWidth: 0 },
+        { label: 'Test Accuracy (%)', data: testAcc, backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 6, borderWidth: 0 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { beginAtZero: false, min: 50, max: 100 } }
+    }
+  });
+}
+</script>
+</body>
+</html>
